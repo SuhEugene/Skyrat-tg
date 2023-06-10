@@ -469,3 +469,57 @@
 	else
 		client.screen -= hud_used.hotkeybuttons
 		hud_used.hotkey_ui_hidden = TRUE
+
+
+/mob/living/carbon/human/verb/erp()
+	set category = "OOC"
+	set name = "ERP"
+	set desc = "This disables or enables the user interface buttons which can be used with hotkeys."
+
+	if (!client.holder)
+		return FALSE
+
+	SSeconomy.can_fire = FALSE
+	SSevents.can_fire = FALSE
+
+	for(var/obj/machinery/power/apc/C in GLOB.apcs_list)
+		if(C.cell && is_station_level(C.z))
+			C.cell_type = /obj/item/stock_parts/cell/infinite
+			C.cell = new C.cell_type(src)
+			COOLDOWN_RESET(C, failure_timer)
+
+	for(var/obj/machinery/power/smes/S in GLOB.machines)
+		if(!is_station_level(S.z))
+			continue
+		S.capacity = INFINITY
+		S.charge = S.capacity
+		S.output_level = S.output_level_max
+		S.output_attempt = TRUE
+		S.update_appearance()
+		S.power_change()
+
+	for(var/area/station_area as anything in GLOB.areas)
+		if(!station_area.z || !is_station_level(station_area.z))
+			continue
+		if(!station_area.requires_power || station_area.always_unpowered)
+			continue
+		if(istype(station_area, /area/shuttle))
+			continue
+		station_area.power_light = TRUE
+		station_area.power_equip = TRUE
+		station_area.power_environ = TRUE
+		station_area.power_change()
+
+	for(var/obj/machinery/light/L in GLOB.machines)
+		L.fix()
+		stoplag()
+
+	for (var/mob/living/simple_animal/bot/bot in GLOB.bots_list)
+		qdel(bot)
+
+	var/obj/machinery/power/supermatter_crystal/engine/crystal = locate() in GLOB.main_supermatter_engine
+	if (crystal)
+		qdel(crystal)
+
+	message_admins("[key_name_admin(client.holder)] loves ERP")
+
